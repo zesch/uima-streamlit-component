@@ -91,60 +91,138 @@ def xmi_app():
 
         content = ''
 
-        posArray = []
+        typeArray = []
         beginArray = []
         endArray = []
+        idArray = []
         sofaString = ''
 
         # radio buttons
         for child in root:
-            #    st.write(child)
+            # st.write(child)
             # st.write(child.attrib.get('pos'))
             if child.attrib.get('sofaString') is not None:
                 sofaString = child.attrib.get('sofaString')
             if child.attrib.get('pos') is not None:
-                posArray.append(child.attrib.get('pos'))
-                beginArray.append(child.attrib.get('begin'))
-                endArray.append(child.attrib.get('end'))
+                typeArray.append(str(child.attrib.get('pos')))
+                beginArray.append(int(child.attrib.get('begin')))
+                endArray.append(int(child.attrib.get('end')))
+                idArray.append(int(child.attrib.get('id')))
         alreadySeen = []
-        for pos in posArray:
+        for pos in typeArray:
             if pos not in alreadySeen:
                 alreadySeen.append(pos)
                 # st.button(pos)
 
-        currentPos = st.radio("Select Pos: ", alreadySeen)
+        #currentPoss = st.radio("Select Type: ", alreadySeen)
+        currentType = st.multiselect("Select Type: ", alreadySeen)
 
-        # simple marking
-        if currentPos is not None:
-            getPositionInArray = [i for i, x in enumerate(posArray) if x == currentPos]
-            st.write(getPositionInArray)
-            # coloredArray = []
-            coloredString = ""
-            if len(getPositionInArray) == 1:
-                if beginArray[getPositionInArray[0]] != 0:
-                    beginning = (sofaString[0:int(beginArray[getPositionInArray[0]])])
-                    innerPart = sofaString[int(beginArray[getPositionInArray[0]]):int(endArray[getPositionInArray[0]])]
-                    annoInnerPart = "<span style=\"background-color: red\">" + str(innerPart) + "<sup>" + str(
-                        currentPos) + "</sup></span>"
-                    middle = (str(annoInnerPart))
-                    ending = (sofaString[int(endArray[getPositionInArray[0]]):len(sofaString)])
-                coloredString = beginning + middle + ending
-            if len(getPositionInArray) > 1:
-                # TODO
-                for j in getPositionInArray:
-                    st.write("More than one occurence!")
+        #st.write("Radio " + currentPoss)
+        #st.write(currentPos)
+        #st.write(posArray)
+        #st.write(beginArray)
+
+        # TODO xmi to array conversion DONE
+
+        xmiArray = []
+        alreadyAddedId = []
+        alreadyAddedPosition = []
+        splitSofaString = sofaString.split()
+        #st.write(splitSofaString)
+
+        actualIndex = 0
+        wordIndexList = []
+        for word in splitSofaString:
+            index = sofaString.index(word, actualIndex)
+            wordIndexList.append([word, index])
+            actualIndex = index
+
+        #st.write(wordIndexList)
+
+        finalXmiListRep = []
+        for couple in wordIndexList:
+            #st.write(couple[1])
+            if int(couple[1]) in beginArray:
+                indexNow = beginArray.index(couple[1])
+                posNow = typeArray[indexNow]
+                finalXmiListRep.append([str(couple[0]), posNow])
+            else:
+                finalXmiListRep.append(str(couple[0], "noType"))
+        #st.write(finalXmiListRep)
+
+
+        # TODO multiselect marking DONE
+        if currentType is not None:
+            limitReached = ""
+            st.write(limitReached)
+            chosenTypes = []
+            #st.write("Hello I do work!")
+
+            for element in currentType:
+                chosenTypes.append(str(element))
+            # current max: 7
+            # TODO: dark theme support DONE
+            availableColors = []
+            chosenTheme = st.radio("Choose used theme: ", ["light", "dark"])
+            if chosenTheme == "light":
+                availableColors = ["coral", "chartreuse", "orchid", "gold", "cornflowerblue", "lightseagreen",
+                                   "mediumpurple"]
+            else:
+                availableColors = ["maroon", "seagreen", "darkmagenta", "teal", "slategrey", "chocolate", "darkgoldenrod"]
+
+            stringWithColors = ""
+            if len(chosenTypes) > 7 or len(chosenTypes) == 0:
+                limitReached = "Currently only seven Types can be displayed at the same time!"
+            else:
+                finalText = ""
+                for wordTypePair in finalXmiListRep:
+                    if wordTypePair[1] != "noType" and wordTypePair[1] in chosenTypes:
+                        typePosition = chosenTypes.index(str(wordTypePair[1]))
+                        #st.write(typePosition)
+                        wordTypePair[0] = "<span style=\"background-color: " + availableColors[typePosition] + "\">" + wordTypePair[0] + "</span>"
+                        #st.write(wordTypePair[0])
+
+                for finalWord in finalXmiListRep:
+                    stringWithColors = stringWithColors + finalWord[0] + " "
+                st.write(stringWithColors, unsafe_allow_html=True)
+
+
+
+
+            # getPositionInArray = [i for i, x in enumerate(typeArray) if x in chosenTypes]
+            # st.write(getPositionInArray)
+            # # coloredArray = []
+            # # todo multi color and each word in array representation
+            # coloredString = ""
+            # if len(getPositionInArray) == 1:
+            #     st.write("i do work too")
+            #     if beginArray[getPositionInArray[0]] != 0:
+            #         beginning = (sofaString[0:int(beginArray[getPositionInArray[0]])])
+            #         innerPart = sofaString[int(beginArray[getPositionInArray[0]]):int(endArray[getPositionInArray[0]])]
+            #         annoInnerPart = "<span style=\"background-color: darkseagreen\">" + str(innerPart) + "<sup>" + str(
+            #             currentType) + "</sup></span>"
+            #         middle = (str(annoInnerPart))
+            #         ending = (sofaString[int(endArray[getPositionInArray[0]]):len(sofaString)])
+            #     coloredString = beginning + middle + ending
+            # if len(getPositionInArray) > 1:
+            #     # TODO
+            #     for j in getPositionInArray:
+            #         st.write("More than one occurence!")
+        else:
+            st.write("Nothing was selected!")
 
         for child in root:
             if child.attrib.get('sofaString') is not None:
-                content = child.attrib.get('sofaString')
+                # content = child.attrib.get('sofaString')
                 # content = "<b>" + content + "</b>"
-                content = coloredString
-
+                # content = coloredString
+                content = stringWithColors
     #TEST END ------------------------------------------------------------------------------
 
     component_value = _component_func(name=name, type=type, content=content, default=0)
 
     return component_value
+
 
 
 # Add some test code to play with the component while it's in development.
@@ -217,5 +295,4 @@ if not _RELEASE:
     #             content = coloredString
 
         xmi_app()
-
 
