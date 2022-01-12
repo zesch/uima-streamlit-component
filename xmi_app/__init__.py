@@ -48,26 +48,7 @@ else:
 # our component's API: we can pre-process its input args, post-process its
 # output value, and add a docstring for users.
 def xmi_app():
-    """Create a new instance of "xmi_app".
 
-    Parameters
-    ----------
-    name: str
-        The name of the thing we're saying hello to. The component will display
-        the text "Hello, {name}!"
-    key: str or None
-        An optional key that uniquely identifies this component. If this is
-        None, and the component's arguments are changed, the component will
-        be re-mounted in the Streamlit frontend and lose its current state.
-
-    Returns
-    -------
-    int
-        The number of times the component's "Click Me" button has been clicked.
-        (This is the value passed to `Streamlit.setComponentValue` on the
-        frontend.)
-
-    """
     # Call through to our private component function. Arguments we pass here
     # will be sent to the frontend, where they'll be available in an "args"
     # dictionary.
@@ -80,8 +61,8 @@ def xmi_app():
     st.title('UIMA XMI APP')
     st.write("""*TODO: find better title*""")
 
+    #File uploader
     file = st.sidebar.file_uploader("Upload xmi file")
-    # plaintext = "here will be text"
     name = ""
     type = ""
     content = ""
@@ -100,7 +81,7 @@ def xmi_app():
         sofaString = ''
         levelArray = []
 
-        # radio buttons
+        # get all needed infos from the cas
         for child in root:
             #st.write(child)
             #st.write(child.attrib.get('pos'))
@@ -138,12 +119,12 @@ def xmi_app():
         #currentPoss = st.radio("Select Type: ", alreadySeen)
         currentType = st.sidebar.multiselect("Select Type: ", alreadySeen)
 
-        #st.write("Radio " + currentPoss)
         #st.write(currentPos)
         #st.write(posArray)
         #st.write(beginArray)
 
         # TODO xmi to array conversion DONE
+        # here, the sofa string gets converted in a (word, index) list
 
         xmiArray = []
         alreadyAddedId = []
@@ -166,6 +147,7 @@ def xmi_app():
         #st.write("wordindexlist:")
         #st.write(wordIndexList)
 
+        #match the types to the occurrences in the sofastring
         finalXmiListRep = []
         for couple in wordIndexList:
             #st.write(couple[1])
@@ -202,6 +184,7 @@ def xmi_app():
             else:
                 availableColors = ["maroon", "seagreen", "darkmagenta", "teal", "slategrey", "chocolate", "darkgoldenrod"]
 
+            #here the html part is done
             typesWithColors = []
             stringWithTypes = ""
             stringWithColors = ""
@@ -263,6 +246,7 @@ def xmi_app():
                 content = stringWithColors
     #TEST END ------------------------------------------------------------------------------
 
+    #only needed for the react part, for pure streamlit only the above code is needed
     component_value = _component_func(name=name, type=type, content=content, default=0)
 
     return component_value
@@ -273,70 +257,6 @@ def xmi_app():
 # During development, we can run this just as we would any other Streamlit
 # app: `$ streamlit run xmi_app/__init__.py`
 if not _RELEASE:
-    # import streamlit as st
-    # from xml.dom import minidom
-    # from xml.etree import ElementTree as ET
-    #
-    # st.title('UIMA XMI APP')
-    #
-    # file = st.file_uploader("Upload xmi file")
-    # # plaintext = "here will be text"
-    # if file is not None:
-    #     myf = ET.parse(file)
-    #     root = myf.getroot()
-    #     name = file.name
-    #     type = file.type
-    #
-    #     content = ''
-    #
-    #     posArray = []
-    #     beginArray = []
-    #     endArray = []
-    #     sofaString = ''
-    #
-    #     # radio buttons
-    #     for child in root:
-    #         #    st.write(child)
-    #         # st.write(child.attrib.get('pos'))
-    #         if child.attrib.get('sofaString') is not None:
-    #             sofaString = child.attrib.get('sofaString')
-    #         if child.attrib.get('pos') is not None:
-    #             posArray.append(child.attrib.get('pos'))
-    #             beginArray.append(child.attrib.get('begin'))
-    #             endArray.append(child.attrib.get('end'))
-    #     alreadySeen = []
-    #     for pos in posArray:
-    #         if pos not in alreadySeen:
-    #             alreadySeen.append(pos)
-    #             # st.button(pos)
-    #
-    #     currentPos = st.radio("Select Pos: ", alreadySeen)
-    #
-    #     # simple marking
-    #     if currentPos is not None:
-    #         getPositionInArray = [i for i, x in enumerate(posArray) if x == currentPos]
-    #         st.write(getPositionInArray)
-    #         # coloredArray = []
-    #         coloredString = ""
-    #         if len(getPositionInArray) == 1:
-    #             if beginArray[getPositionInArray[0]] != 0:
-    #                 beginning = (sofaString[0:int(beginArray[getPositionInArray[0]])])
-    #                 innerPart = sofaString[int(beginArray[getPositionInArray[0]]):int(endArray[getPositionInArray[0]])]
-    #                 annoInnerPart = "<span style=\"background-color: red\">" + str(innerPart) + "<sup>" + str(currentPos) + "</sup></span>"
-    #                 middle = (str(annoInnerPart))
-    #                 ending = (sofaString[int(endArray[getPositionInArray[0]]):len(sofaString)])
-    #             coloredString = beginning + middle + ending
-    #         if len(getPositionInArray) > 1:
-    #
-    #             for j in getPositionInArray:
-    #                 st.write("More than one occurence!")
-    #
-    #
-    #     for child in root:
-    #         if child.attrib.get('sofaString') is not None:
-    #             content = child.attrib.get('sofaString')
-    #             #content = "<b>" + content + "</b>"
-    #             content = coloredString
 
-        xmi_app()
+    xmi_app()
 
