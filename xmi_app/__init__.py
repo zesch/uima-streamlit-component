@@ -1,9 +1,14 @@
 import os
 import re
 
+import numpy as np
+import pandas as pd
 import streamlit.components.v1 as components
 import streamlit as st
 from xml.etree import ElementTree as ET
+from cassis import *
+import numpy
+import pandas
 
 # Create a _RELEASE constant. We'll set this to False while we're developing
 # the component, and True when we're ready to package and distribute it.
@@ -24,9 +29,7 @@ _RELEASE = False
 
 if not _RELEASE:
     _component_func = components.declare_component(
-        # We give the component a simple, descriptive name ("xmi_app"
-        # does not fit this bill, so please choose something better for your
-        # own component :)
+        # We give the component a simple, descriptive name
         "xmi_app",
         # Pass `url` here to tell Streamlit that the component will be served
         # by the local dev server that you run via `npm run start`.
@@ -47,6 +50,177 @@ else:
 # `declare_component` and call it done. The wrapper allows us to customize
 # our component's API: we can pre-process its input args, post-process its
 # output value, and add a docstring for users.
+
+# create list representation
+def get_array_rep(sofaString, beginArray, typeArray):
+
+    splitSofaString = sofaString.split()
+    actualIndex = 0
+    wordIndexList = []
+    for word in splitSofaString:
+        wordlength = len(word)
+        index = sofaString.index(word, actualIndex)
+        wordIndexList.append([word, index])
+        actualIndex = index + wordlength
+
+    finalXmiListRep = []
+    for couple in wordIndexList:
+        if int(couple[1]) in beginArray:
+            indexNow = beginArray.index(couple[1])
+            posNow = typeArray[indexNow]
+            finalXmiListRep.append([str(couple[0]), posNow])
+        else:
+            finalXmiListRep.append([str(couple[0]), "noType"])
+
+    return finalXmiListRep
+
+def uima_Reader_Try (casFile, typesys):
+    #st.write(typesys.getvalue())
+    #st.write(casFile.getvalue())
+    typesystem = load_typesystem(typesys)
+    cas = load_cas_from_xmi(casFile, typesystem=typesystem)
+    st.write(cas.sofas)
+
+    for sentence in cas.select('cassis.Sentence'):
+        for token in cas.select_covered('cassis.Token', sentence):
+            st.write(token.get_covered_text())
+
+            # Annotation values can be accessed as properties
+            st.write('Token: begin={0}, end={1}, id={2}, pos={3}'.format(token.begin, token.end, token.id, token.pos))
+
+    #with open(typesys.read(), 'rt') as f:
+    #    typesystem = load_typesystem(f)
+    #with open(casFile.read(), 'rt') as f:
+    #    cas = load_cas_from_xmi(f, typesystem=typesystem)
+    #print(cas.sofas)
+    #st.write(typesys.read())
+
+def xmi_app_two(fileToProcess, typeToShow):
+
+    myf = ET.parse(fileToProcess)
+    root = myf.getroot()
+    beginArray = []
+    endArray = []
+    typeArray = []
+    sofaString = ''
+    content = ''
+
+    for child in root:
+        if child.attrib.get('sofaString') is not None:
+            sofaString = child.attrib.get('sofaString')
+        if child.attrib.get(typeToShow) is not None:
+            typeArray.append(str(child.attrib.get(typeToShow)))
+            beginArray.append(int(child.attrib.get('begin')))
+            endArray.append(int(child.attrib.get('end')))
+    #
+    # splitSofaString = sofaString.split()
+    # actualIndex = 0
+    # wordIndexList = []
+    # for word in splitSofaString:
+    #     wordlength = len(word)
+    #     index = sofaString.index(word, actualIndex)
+    #     wordIndexList.append([word, index])
+    #     actualIndex = index + wordlength
+    #
+    # finalXmiListRep = []
+    # for couple in wordIndexList:
+    #     if int(couple[1]) in beginArray:
+    #         indexNow = beginArray.index(couple[1])
+    #         posNow = typeArray[indexNow]
+    #         finalXmiListRep.append([str(couple[0]), posNow])
+    #     else:
+    #         finalXmiListRep.append([str(couple[0]), "noType"])
+
+    finalXmiListRep = get_array_rep(sofaString, beginArray, typeArray)
+
+    # get all needed types
+    alreadySeen = []
+    for t in typeArray:
+        if t not in alreadySeen:
+            alreadySeen.append(t)
+
+    currentType = st.multiselect("Select Type: ", alreadySeen)
+    if currentType is not None:
+        limitReached = ""
+        st.write(limitReached)
+        chosenTypes = []
+
+        for element in currentType:
+            chosenTypes.append(str(element))
+        # current max: 7
+        # TODO: dark theme support DONE
+        availableColors = []
+        chosenTheme = st.radio("Choose used theme: ", ["light", "dark"])
+        if chosenTheme == "light":
+            availableColors = ["coral", "chartreuse", "orchid", "gold", "cornflowerblue", "lightseagreen",
+                               "mediumpurple"]
+        else:
+            availableColors = ["maroon", "seagreen", "darkmagenta", "teal", "slategrey", "chocolate", "darkgoldenrod"]
+
+        # here the html part is done
+        typesWithColors = []
+        stringWithTypes = ""
+        stringWithColors = ""
+        if len(chosenTypes) > 7 or len(chosenTypes) == 0:
+            limitReached = "Currently only seven Types can be displayed at the same time!"
+            st.write(sofaString)
+        else:
+            finalText = ""
+            for wordTypePair in finalXmiListRep:
+                if wordTypePair[1] != "noType" and wordTypePair[1] in chosenTypes:
+                    typePosition = chosenTypes.index(str(wordTypePair[1]))
+                    if [wordTypePair[1], availableColors[typePosition]] not in typesWithColors:
+                        typesWithColors.append([wordTypePair[1], availableColors[typePosition]])
+                    wordTypePair[
+                        0] = "<span style=\"border-radius: 25px; padding-left:10px; padding-right:10px; background-color: " + \
+                             availableColors[typePosition] + "\">" + wordTypePair[0] + "</span>"
+
+            for typeColorPair in typesWithColors:
+                stringWithTypes = stringWithTypes + " <span style=\"border-radius: 25px; padding-left:10px; padding-right:10px; background-color: " + \
+                                  typeColorPair[1] + "\">" + typeColorPair[0] + "</span>"
+            for finalWord in finalXmiListRep:
+                stringWithColors = stringWithColors + finalWord[0] + " "
+            if len(chosenTypes) == 0:
+                st.write(sofaString)
+            else:
+                st.write(stringWithTypes, unsafe_allow_html=True)
+                st.write(stringWithColors, unsafe_allow_html=True)
+
+    else:
+        st.write("Nothing was selected!")
+    #for child in root:
+        #if child.attrib.get('sofaString') is not None:
+            #content = stringWithColors
+    if sofaString is not None:
+        content = stringWithColors
+
+def xmi_app_table_version (fileToProcess, typeToShow):
+    st.write("Table Version!")
+
+    myf = ET.parse(fileToProcess)
+    root = myf.getroot()
+    beginArray = []
+    endArray = []
+    typeArray = []
+    sofaString = ''
+    content = ''
+
+    for child in root:
+        if child.attrib.get('sofaString') is not None:
+            sofaString = child.attrib.get('sofaString')
+        if child.attrib.get(typeToShow) is not None:
+            typeArray.append(str(child.attrib.get(typeToShow)))
+            beginArray.append(int(child.attrib.get('begin')))
+            endArray.append(int(child.attrib.get('end')))
+
+    finalXmiListRep = get_array_rep(sofaString, beginArray, typeArray)
+
+    #st.write(finalXmiListRep)
+
+    df = pd.DataFrame(np.asarray(finalXmiListRep), columns=['token', 'type'])
+    st.table(df)
+
+
 def xmi_app():
 
     # Call through to our private component function. Arguments we pass here
@@ -257,6 +431,17 @@ def xmi_app():
 # During development, we can run this just as we would any other Streamlit
 # app: `$ streamlit run xmi_app/__init__.py`
 if not _RELEASE:
-
-    xmi_app()
+    st.title('EXAMPLE WEBPAGE')
+    #st.write("""*TODO: find better title*""")
+    file = st.sidebar.file_uploader("Upload cas.xmi")
+    file2 = st.sidebar.file_uploader("Upload typesystem.xml")
+    typeFromFile = "level"
+    if file is not None:
+        visualRep = st.sidebar.radio("Choose a visual representation:", ('Multiselect', 'Table', 'UIMA-Cassis-Reader'))
+        if visualRep == 'Multiselect':
+            xmi_app_two(file, typeFromFile)
+        if visualRep == 'Table':
+            xmi_app_table_version(file, typeFromFile)
+        if visualRep == 'UIMA-Cassis-Reader':
+            uima_Reader_Try(file, file2)
 

@@ -42,7 +42,7 @@ class XMIApp extends StreamlitComponentBase<State> {
       style.outline = borderStyling
     }
 
-    //old version:
+    //Access variables like this:
     //The file name is: {name} <br></br>
     //   The file type is: {type} <br></br>
     //    The content is: <div dangerouslySetInnerHTML={{__html: content}} />
