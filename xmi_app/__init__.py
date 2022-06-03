@@ -74,26 +74,94 @@ def get_array_rep(sofaString, beginArray, typeArray):
 
     return finalXmiListRep
 
+def multiselect(typeArray, finalRep, sofaString):
+    # get all needed types
+    alreadySeen = []
+    for t in typeArray:
+        if t not in alreadySeen:
+            alreadySeen.append(t)
+
+    currentType = st.multiselect("Select Type: ", alreadySeen)
+    if currentType is not None:
+        limitReached = ""
+        st.write(limitReached)
+        chosenTypes = []
+
+        for element in currentType:
+            chosenTypes.append(str(element))
+        # current max: 7
+        # TODO: dark theme support DONE
+        availableColors = []
+        chosenTheme = st.radio("Choose used theme: ", ["light", "dark"])
+        if chosenTheme == "light":
+            availableColors = ["coral", "chartreuse", "orchid", "gold", "cornflowerblue", "lightseagreen",
+                               "mediumpurple"]
+        else:
+            availableColors = ["maroon", "seagreen", "darkmagenta", "teal", "slategrey", "chocolate", "darkgoldenrod"]
+
+        # here the html part is done
+        typesWithColors = []
+        stringWithTypes = ""
+        stringWithColors = ""
+        if len(chosenTypes) > 7 or len(chosenTypes) == 0:
+            limitReached = "Currently only seven Types can be displayed at the same time!"
+            st.write(sofaString)
+        else:
+            finalText = ""
+            for wordTypePair in finalRep:
+                if wordTypePair[1] != "noType" and wordTypePair[1] in chosenTypes:
+                    typePosition = chosenTypes.index(str(wordTypePair[1]))
+                    if [wordTypePair[1], availableColors[typePosition]] not in typesWithColors:
+                        typesWithColors.append([wordTypePair[1], availableColors[typePosition]])
+                    wordTypePair[
+                        0] = "<span style=\"border-radius: 25px; padding-left:10px; padding-right:10px; background-color: " + \
+                             availableColors[typePosition] + "\">" + wordTypePair[0] + "</span>"
+
+            for typeColorPair in typesWithColors:
+                stringWithTypes = stringWithTypes + " <span style=\"border-radius: 25px; padding-left:10px; padding-right:10px; background-color: " + \
+                                  typeColorPair[1] + "\">" + typeColorPair[0] + "</span>"
+            for finalWord in finalRep:
+                stringWithColors = stringWithColors + finalWord[0] + " "
+            if len(chosenTypes) == 0:
+                st.write(sofaString)
+            else:
+                st.write(stringWithTypes, unsafe_allow_html=True)
+                st.write(stringWithColors, unsafe_allow_html=True)
+
+    else:
+        st.write("Nothing was selected!")
+    # for child in root:
+    # if child.attrib.get('sofaString') is not None:
+    # content = stringWithColors
+    if sofaString is not None:
+        content = stringWithColors
+
 def uima_Reader_Try (casFile, typesys):
     #st.write(typesys.getvalue())
     #st.write(casFile.getvalue())
     typesystem = load_typesystem(typesys)
     cas = load_cas_from_xmi(casFile, typesystem=typesystem)
-    st.write(cas.sofas)
+    #st.write(cas.sofas)
 
+    possibleTypes = []
+    sofaString = ""
+    tokenText = []
+    tokenType = []
+    tokenBegin = []
     for sentence in cas.select('cassis.Sentence'):
         for token in cas.select_covered('cassis.Token', sentence):
-            st.write(token.get_covered_text())
-
+            if token.pos not in possibleTypes:
+                possibleTypes.append(token.pos)
+            tokenText.append(token.get_covered_text())
+            tokenType.append(token.pos)
+            tokenBegin.append(token.begin)
+            #st.write(token.get_covered_text())
+            sofaString = sofaString + token.get_covered_text() + " "
             # Annotation values can be accessed as properties
-            st.write('Token: begin={0}, end={1}, id={2}, pos={3}'.format(token.begin, token.end, token.id, token.pos))
-
-    #with open(typesys.read(), 'rt') as f:
-    #    typesystem = load_typesystem(f)
-    #with open(casFile.read(), 'rt') as f:
-    #    cas = load_cas_from_xmi(f, typesystem=typesystem)
-    #print(cas.sofas)
-    #st.write(typesys.read())
+            #st.write('Token: begin={0}, end={1}, id={2}, pos={3}'.format(token.begin, token.end, token.id, token.pos))
+    finalRep = get_array_rep(sofaString, tokenBegin, tokenType)
+    #st.write(sofaString)
+    multiselect(possibleTypes, finalRep, sofaString)
 
 def xmi_app_two(fileToProcess, typeToShow):
 
@@ -134,65 +202,66 @@ def xmi_app_two(fileToProcess, typeToShow):
     finalXmiListRep = get_array_rep(sofaString, beginArray, typeArray)
 
     # get all needed types
-    alreadySeen = []
-    for t in typeArray:
-        if t not in alreadySeen:
-            alreadySeen.append(t)
-
-    currentType = st.multiselect("Select Type: ", alreadySeen)
-    if currentType is not None:
-        limitReached = ""
-        st.write(limitReached)
-        chosenTypes = []
-
-        for element in currentType:
-            chosenTypes.append(str(element))
-        # current max: 7
-        # TODO: dark theme support DONE
-        availableColors = []
-        chosenTheme = st.radio("Choose used theme: ", ["light", "dark"])
-        if chosenTheme == "light":
-            availableColors = ["coral", "chartreuse", "orchid", "gold", "cornflowerblue", "lightseagreen",
-                               "mediumpurple"]
-        else:
-            availableColors = ["maroon", "seagreen", "darkmagenta", "teal", "slategrey", "chocolate", "darkgoldenrod"]
-
-        # here the html part is done
-        typesWithColors = []
-        stringWithTypes = ""
-        stringWithColors = ""
-        if len(chosenTypes) > 7 or len(chosenTypes) == 0:
-            limitReached = "Currently only seven Types can be displayed at the same time!"
-            st.write(sofaString)
-        else:
-            finalText = ""
-            for wordTypePair in finalXmiListRep:
-                if wordTypePair[1] != "noType" and wordTypePair[1] in chosenTypes:
-                    typePosition = chosenTypes.index(str(wordTypePair[1]))
-                    if [wordTypePair[1], availableColors[typePosition]] not in typesWithColors:
-                        typesWithColors.append([wordTypePair[1], availableColors[typePosition]])
-                    wordTypePair[
-                        0] = "<span style=\"border-radius: 25px; padding-left:10px; padding-right:10px; background-color: " + \
-                             availableColors[typePosition] + "\">" + wordTypePair[0] + "</span>"
-
-            for typeColorPair in typesWithColors:
-                stringWithTypes = stringWithTypes + " <span style=\"border-radius: 25px; padding-left:10px; padding-right:10px; background-color: " + \
-                                  typeColorPair[1] + "\">" + typeColorPair[0] + "</span>"
-            for finalWord in finalXmiListRep:
-                stringWithColors = stringWithColors + finalWord[0] + " "
-            if len(chosenTypes) == 0:
-                st.write(sofaString)
-            else:
-                st.write(stringWithTypes, unsafe_allow_html=True)
-                st.write(stringWithColors, unsafe_allow_html=True)
-
-    else:
-        st.write("Nothing was selected!")
-    #for child in root:
-        #if child.attrib.get('sofaString') is not None:
-            #content = stringWithColors
-    if sofaString is not None:
-        content = stringWithColors
+    # alreadySeen = []
+    # for t in typeArray:
+    #     if t not in alreadySeen:
+    #         alreadySeen.append(t)
+    #
+    # currentType = st.multiselect("Select Type: ", alreadySeen)
+    # if currentType is not None:
+    #     limitReached = ""
+    #     st.write(limitReached)
+    #     chosenTypes = []
+    #
+    #     for element in currentType:
+    #         chosenTypes.append(str(element))
+    #     # current max: 7
+    #     # TODO: dark theme support DONE
+    #     availableColors = []
+    #     chosenTheme = st.radio("Choose used theme: ", ["light", "dark"])
+    #     if chosenTheme == "light":
+    #         availableColors = ["coral", "chartreuse", "orchid", "gold", "cornflowerblue", "lightseagreen",
+    #                            "mediumpurple"]
+    #     else:
+    #         availableColors = ["maroon", "seagreen", "darkmagenta", "teal", "slategrey", "chocolate", "darkgoldenrod"]
+    #
+    #     # here the html part is done
+    #     typesWithColors = []
+    #     stringWithTypes = ""
+    #     stringWithColors = ""
+    #     if len(chosenTypes) > 7 or len(chosenTypes) == 0:
+    #         limitReached = "Currently only seven Types can be displayed at the same time!"
+    #         st.write(sofaString)
+    #     else:
+    #         finalText = ""
+    #         for wordTypePair in finalXmiListRep:
+    #             if wordTypePair[1] != "noType" and wordTypePair[1] in chosenTypes:
+    #                 typePosition = chosenTypes.index(str(wordTypePair[1]))
+    #                 if [wordTypePair[1], availableColors[typePosition]] not in typesWithColors:
+    #                     typesWithColors.append([wordTypePair[1], availableColors[typePosition]])
+    #                 wordTypePair[
+    #                     0] = "<span style=\"border-radius: 25px; padding-left:10px; padding-right:10px; background-color: " + \
+    #                          availableColors[typePosition] + "\">" + wordTypePair[0] + "</span>"
+    #
+    #         for typeColorPair in typesWithColors:
+    #             stringWithTypes = stringWithTypes + " <span style=\"border-radius: 25px; padding-left:10px; padding-right:10px; background-color: " + \
+    #                               typeColorPair[1] + "\">" + typeColorPair[0] + "</span>"
+    #         for finalWord in finalXmiListRep:
+    #             stringWithColors = stringWithColors + finalWord[0] + " "
+    #         if len(chosenTypes) == 0:
+    #             st.write(sofaString)
+    #         else:
+    #             st.write(stringWithTypes, unsafe_allow_html=True)
+    #             st.write(stringWithColors, unsafe_allow_html=True)
+    #
+    # else:
+    #     st.write("Nothing was selected!")
+    # #for child in root:
+    #     #if child.attrib.get('sofaString') is not None:
+    #         #content = stringWithColors
+    # if sofaString is not None:
+    #     content = stringWithColors
+    multiselect(typeArray,finalXmiListRep, sofaString)
 
 def xmi_app_table_version (fileToProcess, typeToShow):
     st.write("Table Version!")
@@ -435,7 +504,8 @@ if not _RELEASE:
     #st.write("""*TODO: find better title*""")
     file = st.sidebar.file_uploader("Upload cas.xmi")
     file2 = st.sidebar.file_uploader("Upload typesystem.xml")
-    typeFromFile = "level"
+    #enter type to highlight here
+    typeFromFile = "pos"
     if file is not None:
         visualRep = st.sidebar.radio("Choose a visual representation:", ('Multiselect', 'Table', 'UIMA-Cassis-Reader'))
         if visualRep == 'Multiselect':
