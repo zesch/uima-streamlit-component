@@ -14,7 +14,7 @@ import pandas
 # the component, and True when we're ready to package and distribute it.
 # (This is, of course, optional - there are innumerable ways to manage your
 # release process.)
-_RELEASE = False
+_RELEASE = True
 
 # Declare a Streamlit component. `declare_component` returns a function
 # that is used to create instances of the component. We're naming this
@@ -30,7 +30,7 @@ _RELEASE = False
 if not _RELEASE:
     _component_func = components.declare_component(
         # We give the component a simple, descriptive name
-        "xmi_app",
+        "testUimaStreamlitComponent",
         # Pass `url` here to tell Streamlit that the component will be served
         # by the local dev server that you run via `npm run start`.
         # (This is useful while your component is in development.)
@@ -42,7 +42,7 @@ else:
     # build directory:
     parent_dir = os.path.dirname(os.path.abspath(__file__))
     build_dir = os.path.join(parent_dir, "frontend/build")
-    _component_func = components.declare_component("xmi_app", path=build_dir)
+    _component_func = components.declare_component("testUimaStreamlitComponent", path=build_dir)
 
 
 # Create a wrapper function for the component. This is an optional
@@ -498,7 +498,7 @@ def xmi_app():
 
 # Add some test code to play with the component while it's in development.
 # During development, we can run this just as we would any other Streamlit
-# app: `$ streamlit run xmi_app/__init__.py`
+# app: `$ streamlit run testUimaStreamlitComponent/__init__.py`
 if not _RELEASE:
     st.title('EXAMPLE WEBPAGE')
     #st.write("""*TODO: find better title*""")
