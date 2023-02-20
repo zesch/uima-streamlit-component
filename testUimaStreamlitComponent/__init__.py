@@ -83,11 +83,13 @@ def newMultiselect(typeArray, sortedArray, sofaString):
         if t not in alreadySeen:
             alreadySeen.append(t)
 
-    currentType = st.multiselect("Select Type: ", alreadySeen, alreadySeen)
+    alreadySeenWithoutNoType = alreadySeen.copy()
+    alreadySeenWithoutNoType.remove('noType')
+    currentType = st.multiselect("Select Type: ", alreadySeenWithoutNoType, alreadySeenWithoutNoType)
     #availableColors = ["coral", "chartreuse", "orchid", "gold", "cornflowerblue", "lightseagreen",
     #                   "mediumpurple", "springgreen", "indianred", "hotpink", "darkorange", "palevioletred",
     #                   "darkkhaki", "greenyellow", "palegreen"]
-
+    #st.write(alreadySeen)
     availableColors = ["lightcoral", "pink", "palevioletred", "lightsalmon", "gold", "lightskyblue", "lavender", "plum", "palegreen", "mediumaquamarine", "darkseagreen", "paleturquoise", "lightsteelblue", "rosybrown", "gainsboro"]
 
     typeWithColor = []
@@ -110,19 +112,19 @@ def newMultiselect(typeArray, sortedArray, sofaString):
         finalString = ""
         finalTypeString = ""
         #st.write(sofaString)
-        st.write(len(sortedArray))
+        #st.write(len(sortedArray))
         #st.write(textWithColor[0])
 
 
         for types in typeWithColor:
-            if types[0] in currentType:
+            if types[0] in currentType and types[0] != "noType":
                 finalTypeString = finalTypeString + "<span style=\"border-radius: 25px; padding-left:10px; padding-right:10px; background-color: " + \
                                   types[1] + "\">" + str(types[0]) + "</span> "
             #st.write(types)
 
         for triple in textWithColor:
             #st.write(triple)
-            if triple[0] != "noType" and triple[2] in currentType:
+            if triple[2] != "noType" and triple[2] in currentType:
                 if triple[2] == "PUNCT":
                     finalString = finalString + "<span style=\"border-radius: 25px; padding-left:10px; padding-right:10px; background-color: " + \
                                   triple[1] + "\">" + triple[0] + "</span>"
@@ -444,7 +446,7 @@ def simpleHighlightingPassages(text, highlights):
 
     return "Hi"
 
-def uima_Freq_Read_Preprocessing(casFile, typesys, pathSen, pathPos, pathFreq):
+def uima_Freq_Read_Preprocessing(casFile, typesys, pathSen, pathTok, pathFreq):
     typesystem = load_typesystem(typesys)
     cas = load_cas_from_xmi(casFile, typesystem=typesystem)
 
@@ -470,7 +472,7 @@ def uima_Freq_Read_Preprocessing(casFile, typesys, pathSen, pathPos, pathFreq):
             sortedArray = sorted(toBeSorted, key=itemgetter(0))
 
 
-        for token in cas.select_covered(pathPos, sentence): #pos
+        for token in cas.select_covered(pathTok, sentence): #pos
             #if token.frequencyBand not in possibleTypes:
             #    possibleTypes.append(token.frequencyBand)
             oldtoBeSorted.append([token.begin, token.get_covered_text()])
@@ -502,28 +504,40 @@ def uima_Freq_Read_Preprocessing(casFile, typesys, pathSen, pathPos, pathFreq):
     #finalRep = get_array_rep(sofaString, tokenBegin, tokenType)
     return possibleTypes, sortedFinalSortedArray, sofaString
 
-def uima_Read_Preprocessing(casFile, typesys, pathSen, pathPos):
+def uima_Read_Preprocessing(casFile, typesys, pathSen, pathPos, pathTok):
     # st.write(typesys.getvalue())
     # st.write(casFile.getvalue())
     typesystem = load_typesystem(typesys)
     cas = load_cas_from_xmi(casFile, typesystem=typesystem)
     # st.write(cas.sofas)
 
-    possibleTypes = []
+    possibleTypes = ["noType"]
     sofaString = ""
     tokenText = []
     tokenType = []
     tokenBegin = []
     toBeSorted = []
+    allToken = []
     for sentence in cas.select(pathSen): #sentence
+
+        for t in cas.select_covered(pathTok, sentence):
+            allToken.append([t.begin, t.get_covered_text(), "noType"])
+
         for token in cas.select_covered(pathPos, sentence): #pos
             if token.coarseValue not in possibleTypes:
                 possibleTypes.append(token.coarseValue)
             toBeSorted.append([token.begin, token.get_covered_text(), token.coarseValue])
             sortedArray = sorted(toBeSorted, key=itemgetter(0))
 
+        for tokA in allToken:
+            for tokB in sortedArray:
+                if tokA[0] == tokB[0]:
+                    tokA[2] = tokB[2]
+    #st.write(sortedArray)
+    #st.write(allToken)
 
-    for sortedItem in sortedArray:
+
+    for sortedItem in allToken:
         tokenBegin.append(sortedItem[0])
         tokenText.append(sortedItem[1])
         tokenType.append(sortedItem[2])
@@ -543,15 +557,15 @@ def uima_Read_Preprocessing(casFile, typesys, pathSen, pathPos):
     #st.write(sortedArray)
     #st.write(sofaString)
     #st.write (tokenBegin)
-    return possibleTypes, sortedArray, sofaString
+    return possibleTypes, allToken, sofaString
 
-def uima_Reader_Try(casFile, typesys, pathSen, pathPos):
-    possibleTypes, finalRep, sofaString = uima_Read_Preprocessing(casFile, typesys, pathSen, pathPos)
+def uima_Reader_Try(casFile, typesys, pathSen, pathPos, pathTok):
+    possibleTypes, finalRep, sofaString = uima_Read_Preprocessing(casFile, typesys, pathSen, pathPos, pathTok)
     #multiselect(possibleTypes, finalRep, sofaString)
     newMultiselect(possibleTypes, finalRep, sofaString)
 
-def uima_Reader_Freq_Try(casFile, typesys, pathSen, pathPos, pathFreq):
-    possibleTypes, finalRep, sofaString = uima_Freq_Read_Preprocessing(casFile, typesys, pathSen, pathPos, pathFreq)
+def uima_Reader_Freq_Try(casFile, typesys, pathSen, pathTok, pathFreq):
+    possibleTypes, finalRep, sofaString = uima_Freq_Read_Preprocessing(casFile, typesys, pathSen, pathTok, pathFreq)
     newFreqMultiselect(possibleTypes, finalRep, sofaString)
 
 def xmi_app_two(fileToProcess, typeToShow):
@@ -884,13 +898,13 @@ def xmi_app():
 
     return component_value
 
-def freq_and_pos(casFile, typesys, pathSen, pathPos, pathFreq):
+def freq_and_pos(casFile, typesys, pathSen, pathPos, pathFreq, pathTok):
     pick = st.radio("Do you want to highlight part of speech types or frequency bands?", ("POS", "Frequency Bands"))
 
     if pick == "POS":
-        uima_Reader_Try(casFile, typesys, pathSen, pathPos)
+        uima_Reader_Try(casFile, typesys, pathSen, pathPos, pathTok)
     else:
-        uima_Reader_Freq_Try(casFile, typesys, pathSen, pathPos, pathFreq)
+        uima_Reader_Freq_Try(casFile, typesys, pathSen, pathTok, pathFreq)
     return 6
 
 
@@ -909,6 +923,7 @@ if not _RELEASE:
     testtext = "Cars driving cars? I never thought that the day would come when cars are driving themselves, yet it is right around the corner. Which leads me to be scared do to malfuntions of machines causing injury, But still very excited because of the techonology is very fascinating. Their are so many cars with people driving that get in accidents due to impairment and i believe that this technology can really benefit our society. " \
                "Their are many things that a car with no driver can lead people to think. Like it may lead people to think that maybe sitting in a car and not driving may get boring. Although if they are a passenger in a car are they bored? "
     pathSen = "de.tudarmstadt.ukp.dkpro.core.api.segmentation.type.Sentence"
+    pathTok = "de.tudarmstadt.ukp.dkpro.core.api.segmentation.type.Token"
     pathPos = "de.tudarmstadt.ukp.dkpro.core.api.lexmorph.type.pos.POS"
     pathFreq = "org.lift.type.Frequency"
     testarray = [
@@ -940,7 +955,7 @@ if not _RELEASE:
         if visualRep == 'FrequencyHighlighting':
             freqencyHighlighting(file, file2, testFreqList)
         if visualRep == 'FreqAndPos':
-            freq_and_pos(file, file2, pathSen, pathPos, pathFreq)
+            freq_and_pos(file, file2, pathSen, pathPos, pathFreq, pathTok)
             #mockTagCompLing()
 
 
